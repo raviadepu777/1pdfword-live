@@ -1,0 +1,31 @@
+# Use an official Node.js 18 image
+FROM node:18-slim
+
+# Install LibreOffice - this is the magic for file conversion
+RUN apt-get update && apt-get install -y \
+    libreoffice \
+    --no-install-recommends \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create and set the working directory
+WORKDIR /usr/src/app
+
+# Copy package.json to install dependencies first
+COPY package*.json ./
+
+# Install project dependencies
+RUN npm install
+
+# Copy the rest of the application code
+COPY . .
+
+# Create a 'public' directory and move the index.html file into it
+# This is required for Express to serve the front-end
+RUN mkdir public && mv index.html public/
+
+# Expose the port the app runs on
+EXPOSE 3000
+
+# The command to start the server
+CMD [ "node", "server.js" ]
