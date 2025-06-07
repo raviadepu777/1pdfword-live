@@ -1,31 +1,33 @@
-# Use an official Node.js 18 image
+# Use a lean, official Node.js 18 image
 FROM node:18-slim
 
-# Install LibreOffice - this is the magic for file conversion
+# Install LibreOffice and other dependencies needed for it to run headless
 RUN apt-get update && apt-get install -y \
     libreoffice \
     --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create and set the working directory
+# Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy package.json to install dependencies first
+# Copy package.json and package-lock.json (if available)
+# This is a key step for caching. It ensures npm install only runs when dependencies change.
 COPY package*.json ./
 
-# Install project dependencies
+# Install project dependencies listed in package.json
+# This is the step that fixes your "Cannot find module 'express'" error
 RUN npm install
 
-# Copy the rest of the application code
+# Now, copy the rest of your application's source code
 COPY . .
 
 # Create a 'public' directory and move the index.html file into it
-# This is required for Express to serve the front-end
-RUN mkdir public && mv index.html public/
+# This is required for our Express server to serve the front-end
+RUN mkdir -p public && mv index.html public/
 
-# Expose the port the app runs on
+# Expose the port the app runs on (Render uses this internally)
 EXPOSE 3000
 
-# The command to start the server
+# The command to start the server when the container launches
 CMD [ "node", "server.js" ]
