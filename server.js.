@@ -12,8 +12,10 @@ const port = process.env.PORT || 3000;
 const convertAsync = promisify(libre.convert);
 
 app.use(cors());
-// Serve the main directory for static files like index.html
-app.use(express.static(__dirname));
+
+// Serve static files from the 'public' directory
+// We will create this directory in our Dockerfile
+app.use(express.static(path.join(__dirname, 'public')));
 
 const uploadsDir = './uploads';
 if (!fs.existsSync(uploadsDir)){
@@ -30,7 +32,6 @@ app.post('/convert', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).send('No file uploaded.');
     }
-
     const inputPath = req.file.path;
     const outputFormat = req.body.to || 'docx';
     const outputPath = path.join(uploadsDir, `${Date.now()}.${outputFormat}`);
@@ -46,7 +47,6 @@ app.post('/convert', upload.single('file'), async (req, res) => {
             fs.unlinkSync(inputPath);
             fs.unlinkSync(outputPath);
         });
-
     } catch (err) {
         console.error(`Conversion Error:`, err);
         if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
@@ -56,7 +56,7 @@ app.post('/convert', upload.single('file'), async (req, res) => {
 
 // A catch-all to serve index.html for any other GET request
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(port, () => {
