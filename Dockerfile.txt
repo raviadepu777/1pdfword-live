@@ -1,25 +1,37 @@
-# Use a lean, official Node.js 18 image
+# ==> STAGE 1: Build the application and install dependencies <==
+FROM node:18-slim as builder
+
+# Set the working directory for the build stage
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json (if it exists)
+COPY package*.json ./
+
+# Install all dependencies, including development ones if needed
+RUN npm install
+
+
+# ==> STAGE 2: Create the final, lean production image <==
 FROM node:18-slim
 
-# Install LibreOffice
+# Install LibreOffice - our main system dependency
 RUN apt-get update && apt-get install -y \
     libreoffice \
     --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+# Set the working directory for the final image
 WORKDIR /usr/src/app
 
-# Copy package.json to install dependencies
-COPY package*.json ./
-RUN npm install
+# Copy the pre-built node_modules folder from the 'builder' stage
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 
-# Copy the rest of the application code (including server.js and index.html)
+# Copy the application source code
 COPY . .
 
-# Expose the port the app runs on
+# Expose the port our app will run on
 EXPOSE 3000
 
 # The command to start the server
-CMD [ "node", "server.js" ]
+CMD ["node", "server.js"]
